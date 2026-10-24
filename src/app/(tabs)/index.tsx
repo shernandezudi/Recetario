@@ -1,4 +1,5 @@
 
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,6 +18,7 @@ export default function RecetasScreen() {
   const [recetas, setRecetas] = useState<Receta[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
+  const router = useRouter();
 
   async function cargarRecetas() {
     try {
@@ -82,7 +84,15 @@ export default function RecetasScreen() {
           <Text style={styles.mensaje}>No hay recetas para mostrar.</Text>
         }
         renderItem={({ item }) => (
-          <View style={styles.tarjeta}>
+          <Pressable
+            style={styles.tarjeta}
+            onPress={() =>
+              router.push({
+                pathname: '/receta/[id]',
+                params: { id: String(item.id) },
+              })
+            }
+          >
             <Image
               source={{ uri: item.image }}
               style={styles.imagen}
@@ -101,7 +111,7 @@ export default function RecetasScreen() {
                 Calificación: {item.rating}
               </Text>
             </View>
-          </View>
+          </Pressable>
         )}
       />
     </View>

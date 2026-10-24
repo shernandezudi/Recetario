@@ -8,10 +8,11 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
-import { obtenerRecetas } from '../../../services/recetas';
+import { buscarRecetas, obtenerRecetas, } from '../../../services/recetas';
 import type { Receta } from '../../../types/receta';
 
 export default function RecetasScreen() {
@@ -19,6 +20,8 @@ export default function RecetasScreen() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const router = useRouter();
+  const [busqueda, setBusqueda] = useState('');
+  const [buscando, setBuscando] = useState(false);
 
   async function cargarRecetas() {
     try {
@@ -33,6 +36,24 @@ export default function RecetasScreen() {
       setCargando(false);
     }
   }
+
+  const ejecutarBusqueda = async () => {
+    if (!busqueda.trim()) {
+      cargarRecetas();
+      return;
+    }
+    try {
+      setBuscando(true);
+      setError('');
+
+      const respuesta = await buscarRecetas(busqueda);
+      setRecetas(respuesta.recipes);
+    } catch {
+      setError('No se pudieron buscar las recetas. Intentá nuevamente.');
+    } finally {
+      setBuscando(false);
+    }
+  };
 
   useEffect(() => {
   async function iniciarCarga() {
@@ -74,7 +95,28 @@ export default function RecetasScreen() {
       <Text style={styles.title}>Recetario</Text>
       <Text style={styles.subtitulo}>
         Explorá nuestras recetas
-      </Text>
+      </Text> 
+
+      <View style={styles.buscador}>
+        <TextInput
+          style={styles.campoBusqueda}
+          placeholder="Buscar recetas..."
+          value={busqueda}
+          onChangeText={setBusqueda}
+          onSubmitEditing={ejecutarBusqueda}
+          returnKeyType="search"
+        />
+
+        <Pressable
+          style={styles.botonBuscar}
+          onPress={ejecutarBusqueda}
+          disabled={buscando}
+        >
+          <Text style={styles.textoBotonBuscar}>
+            {buscando ? 'Buscando...' : 'Buscar'}
+          </Text>
+        </Pressable>
+      </View>
 
       <FlatList
         data={recetas}
@@ -84,6 +126,8 @@ export default function RecetasScreen() {
           <Text style={styles.mensaje}>No hay recetas para mostrar.</Text>
         }
         renderItem={({ item }) => (
+
+          //detalles de productos
           <Pressable
             style={styles.tarjeta}
             onPress={() =>
@@ -188,6 +232,36 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   textoBoton: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  buscador: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+
+  campoBusqueda: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    color: '#222',
+  },
+
+  botonBuscar: {
+    backgroundColor: '#2e7d32',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+
+  textoBotonBuscar: {
     color: '#fff',
     fontWeight: 'bold',
   },

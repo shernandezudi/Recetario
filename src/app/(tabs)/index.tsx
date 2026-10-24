@@ -123,7 +123,11 @@ export default function RecetasScreen() {
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.lista}
         ListEmptyComponent={
-          <Text style={styles.mensaje}>No hay recetas para mostrar.</Text>
+          !cargando && !buscando && !error ? (
+            <Text style={styles.mensajeVacio}>
+              No se encontraron recetas.
+            </Text>
+          ) : null
         }
         renderItem={({ item }) => (
 
@@ -265,4 +269,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+  
+  mensajeVacio: {
+  textAlign: 'center',
+  marginTop: 24,
+  fontSize: 16,
+  color: '#666',
+},
 });

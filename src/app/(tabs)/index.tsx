@@ -12,63 +12,47 @@ import {
   View,
 } from 'react-native';
 
-import { buscarRecetas, obtenerRecetas, } from '../../../services/recetas';
-import type { Receta } from '../../../types/receta';
+import { useRecetas } from '../../context/recetas-context';
 
 export default function RecetasScreen() {
-  const [recetas, setRecetas] = useState<Receta[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState('');
   const router = useRouter();
+
   const [busqueda, setBusqueda] = useState('');
   const [buscando, setBuscando] = useState(false);
 
-  async function cargarRecetas() {
-    try {
-      setError('');
-      setCargando(true);
-
-      const respuesta = await obtenerRecetas();
-      setRecetas(respuesta.recipes);
-    } catch {
-      setError('No se pudieron cargar las recetas. Intentá nuevamente.');
-    } finally {
-      setCargando(false);
-    }
-  }
+  const {
+    recetas,
+    cargando,
+    error,
+    cargarRecetas,
+    buscarRecetasEnContexto,
+  } = useRecetas();
 
   const ejecutarBusqueda = async () => {
     if (!busqueda.trim()) {
-      cargarRecetas();
+      try {
+        await cargarRecetas();
+      } catch {
+        // El contexto ya guarda el mensaje de error.
+      }
       return;
     }
+
     try {
       setBuscando(true);
-      setError('');
-
-      const respuesta = await buscarRecetas(busqueda);
-      setRecetas(respuesta.recipes);
+      await buscarRecetasEnContexto(busqueda);
     } catch {
-      setError('No se pudieron buscar las recetas. Intentá nuevamente.');
+      // El contexto ya guarda el mensaje de error.
     } finally {
       setBuscando(false);
     }
   };
 
   useEffect(() => {
-  async function iniciarCarga() {
-    try {
-      const respuesta = await obtenerRecetas();
-      setRecetas(respuesta.recipes);
-    } catch {
-      setError('No se pudieron cargar las recetas. Intentá nuevamente.');
-    } finally {
-      setCargando(false);
-    }
-  }
-
-  iniciarCarga();
-}, []);
+    cargarRecetas().catch(() => {
+      // El contexto ya guarda el mensaje de error.
+    });
+  }, [cargarRecetas]);
 
   if (cargando) {
     return (

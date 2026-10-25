@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import CampoFormulario from './campo-formulario';
+import ListaEditable from './lista-editable';
 import { Colores } from '../constants/colores';
 import { DatosReceta, Dificultad } from '../types/receta';
 import { traducirDificultad } from '../utils/formato';
@@ -25,6 +26,8 @@ export default function FormularioReceta({ valoresIniciales, textoBoton, onGuard
   const [prep, setPrep] = useState(valoresIniciales ? String(valoresIniciales.prepTimeMinutes) : '');
   const [coccion, setCoccion] = useState(valoresIniciales ? String(valoresIniciales.cookTimeMinutes) : '');
   const [porciones, setPorciones] = useState(valoresIniciales ? String(valoresIniciales.servings) : '');
+  const [ingredientes, setIngredientes] = useState<string[]>(valoresIniciales?.ingredients ?? ['']);
+  const [pasos, setPasos] = useState<string[]>(valoresIniciales?.instructions ?? ['']);
 
   const handleGuardar = () => {
     if (dificultad === null) {
@@ -37,9 +40,8 @@ export default function FormularioReceta({ valoresIniciales, textoBoton, onGuard
       prepTimeMinutes: Number(prep),
       cookTimeMinutes: Number(coccion),
       servings: Number(porciones),
-      // Valores provisorios: se reemplazan en el siguiente commit
-      ingredients: ['x'],
-      instructions: ['x'],
+      ingredients: ingredientes.map((item) => item.trim()),
+      instructions: pasos.map((item) => item.trim()),
     });
   };
 
@@ -98,6 +100,23 @@ export default function FormularioReceta({ valoresIniciales, textoBoton, onGuard
         onCambiarTexto={setPorciones}
         placeholder="Ej: 4"
         numerico
+      />
+
+      <ListaEditable
+        titulo="Ingredientes"
+        items={ingredientes}
+        onChange={setIngredientes}
+        placeholder="Ej: 2 huevos"
+        textoAgregar="Agregar ingrediente"
+      />
+      <ListaEditable
+        titulo="Pasos"
+        items={pasos}
+        onChange={setPasos}
+        placeholder="Ej: Mezclar todo en un bol"
+        textoAgregar="Agregar paso"
+        numerada
+        multilinea
       />
 
       <Pressable style={styles.botonGuardar} onPress={handleGuardar}>

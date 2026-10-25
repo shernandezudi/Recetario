@@ -2,10 +2,10 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
+  FlatList,
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -36,6 +36,13 @@ export default function ExplorarScreen() {
     void cargarEtiquetas();
   }, []);
 
+  function abrirEtiqueta(etiqueta: string) {
+    router.push({
+      pathname: "/etiqueta/[tag]",
+      params: { tag: etiqueta },
+    });
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.titulo}>Explorar recetas</Text>
@@ -46,27 +53,28 @@ export default function ExplorarScreen() {
       ) : error ? (
         <View style={styles.mensaje}>
           <Text style={styles.error}>{error}</Text>
-          <TouchableOpacity onPress={() => void cargarEtiquetas()}>
+          <Pressable onPress={() => void cargarEtiquetas()}>
             <Text style={styles.reintentar}>Reintentar</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.lista}>
-          {etiquetas.map((etiqueta) => (
-            <TouchableOpacity
-              key={etiqueta}
+        <FlatList
+          data={etiquetas}
+          keyExtractor={(etiqueta) => etiqueta}
+          renderItem={({ item }) => (
+            <Pressable
               style={styles.botonEtiqueta}
-              onPress={() =>
-                router.push({
-                  pathname: "/etiqueta/[tag]",
-                  params: { tag: etiqueta },
-                })
-              }
+              onPress={() => abrirEtiqueta(item)}
             >
-              <Text style={styles.textoEtiqueta}>{etiqueta}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+              <Text style={styles.textoEtiqueta}>{item}</Text>
+            </Pressable>
+          )}
+          contentContainerStyle={styles.lista}
+          ItemSeparatorComponent={() => <View style={styles.separador} />}
+          ListEmptyComponent={
+            <Text style={styles.mensaje}>No hay etiquetas disponibles.</Text>
+          }
+        />
       )}
     </View>
   );
@@ -91,7 +99,6 @@ const styles = StyleSheet.create({
   },
   lista: {
     paddingBottom: 24,
-    gap: 10,
   },
   botonEtiqueta: {
     backgroundColor: "#FFFFFF",
@@ -105,6 +112,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#356747",
     textTransform: "capitalize",
+  },
+  separador: {
+    height: 10,
   },
   carga: {
     marginTop: 30,

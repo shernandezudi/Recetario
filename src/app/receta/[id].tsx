@@ -67,6 +67,20 @@ export default function DetalleRecetaScreen() {
           <Text style={styles.etiquetaDato}>Calorías</Text>
         </View>
       </View>
+
+      <Text style={styles.seccion}>Ingredientes</Text>
+      {receta.ingredients.map((ingrediente, indice) => (
+        <Text key={indice} style={styles.linea}>
+          • {ingrediente}
+        </Text>
+      ))}
+
+      <Text style={styles.seccion}>Pasos</Text>
+      {receta.instructions.map((paso, indice) => (
+        <Text key={indice} style={styles.linea}>
+          {indice + 1}. {paso}
+        </Text>
+      ))}
     </ScrollView>
   );
 }
@@ -112,4 +126,6 @@ const styles = StyleSheet.create({
   },
   valorDato: { fontSize: 16, fontWeight: 'bold', color: Colores.texto },
   etiquetaDato: { fontSize: 12, color: Colores.textoSuave },
+  seccion: { fontSize: 18, fontWeight: 'bold', color: Colores.texto, marginTop: 12 },
+  linea: { fontSize: 16, lineHeight: 24, color: Colores.texto },
 });

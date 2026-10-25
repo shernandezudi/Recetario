@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -24,22 +24,39 @@ export default function RecetasScreen() {
   const [cargandoMas, setCargandoMas] = useState(false);
   const [error, setError] = useState("");
 
+  const solicitudActual = useRef(0);
+
   async function cargarRecetas(nuevaConsulta = "") {
+    const numeroSolicitud = solicitudActual.current + 1;
+    solicitudActual.current = numeroSolicitud;
+    const busqueda = nuevaConsulta.trim();
+
     setCargando(true);
+    setCargandoMas(false);
     setError("");
-    setBusquedaActiva(nuevaConsulta.trim());
+    setRecetas([]);
+    setTotal(0);
+    setBusquedaActiva(busqueda);
 
     try {
-      const respuesta = nuevaConsulta.trim()
-        ? await buscarRecetas(nuevaConsulta.trim())
+      const respuesta = busqueda
+        ? await buscarRecetas(busqueda)
         : await obtenerRecetas(LIMITE, 0);
+
+      if (numeroSolicitud !== solicitudActual.current) {
+        return;
+      }
 
       setRecetas(respuesta.recipes);
       setTotal(respuesta.total);
     } catch {
-      setError("No se pudieron cargar las recetas.");
+      if (numeroSolicitud === solicitudActual.current) {
+        setError("No se pudieron cargar las recetas.");
+      }
     } finally {
-      setCargando(false);
+      if (numeroSolicitud === solicitudActual.current) {
+        setCargando(false);
+      }
     }
   }
 
@@ -53,11 +70,17 @@ export default function RecetasScreen() {
       return;
     }
 
+    const numeroSolicitud = solicitudActual.current;
+
     setCargandoMas(true);
     setError("");
 
     try {
       const respuesta = await obtenerRecetas(LIMITE, recetas.length);
+
+      if (numeroSolicitud !== solicitudActual.current) {
+        return;
+      }
 
       setRecetas((anteriores) => {
         const idsExistentes = anteriores.map((receta) => receta.id);
@@ -70,9 +93,13 @@ export default function RecetasScreen() {
 
       setTotal(respuesta.total);
     } catch {
-      setError("No se pudieron cargar más recetas.");
+      if (numeroSolicitud === solicitudActual.current) {
+        setError("No se pudieron cargar más recetas.");
+      }
     } finally {
-      setCargandoMas(false);
+      if (numeroSolicitud === solicitudActual.current) {
+        setCargandoMas(false);
+      }
     }
   }
 
@@ -114,7 +141,22 @@ export default function RecetasScreen() {
         <>
           <Text style={styles.resultados}>{total} recetas encontradas</Text>
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? (
+            <View style={styles.mensajeError}>
+              <Text style={styles.error}>{error}</Text>
+              {busquedaActiva === "" && recetas.length < total ? (
+                <TouchableOpacity onPress={() => void cargarMasRecetas()}>
+                  <Text style={styles.reintentar}>Reintentar carga</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => void cargarRecetas(busquedaActiva)}
+                >
+                  <Text style={styles.reintentar}>Reintentar búsqueda</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : null}
 
           <FlatList
             style={styles.lista}
@@ -199,6 +241,10 @@ const styles = StyleSheet.create({
   mensaje: {
     alignItems: "center",
     padding: 20,
+  },
+  mensajeError: {
+    alignItems: "center",
+    paddingVertical: 8,
   },
   error: {
     color: "#B42318",

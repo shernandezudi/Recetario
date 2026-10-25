@@ -27,11 +27,11 @@ export default function RecetasScreen() {
   async function cargarRecetas(nuevaConsulta = "") {
     setCargando(true);
     setError("");
-    setBusquedaActiva(nuevaConsulta);
+    setBusquedaActiva(nuevaConsulta.trim());
 
     try {
       const respuesta = nuevaConsulta.trim()
-        ? await buscarRecetas(nuevaConsulta)
+        ? await buscarRecetas(nuevaConsulta.trim())
         : await obtenerRecetas(LIMITE, 0);
 
       setRecetas(respuesta.recipes);
@@ -44,7 +44,12 @@ export default function RecetasScreen() {
   }
 
   async function cargarMasRecetas() {
-    if (cargandoMas || cargando || recetas.length >= total) {
+    if (
+      cargando ||
+      cargandoMas ||
+      busquedaActiva !== "" ||
+      recetas.length >= total
+    ) {
       return;
     }
 
@@ -52,17 +57,17 @@ export default function RecetasScreen() {
     setError("");
 
     try {
-      const respuesta = busquedaActiva.trim()
-        ? await buscarRecetas(busquedaActiva)
-        : await obtenerRecetas(LIMITE, recetas.length);
+      const respuesta = await obtenerRecetas(LIMITE, recetas.length);
 
       setRecetas((anteriores) => {
-        const idsExistentes = new Set(anteriores.map((receta) => receta.id));
+        const idsExistentes = anteriores.map((receta) => receta.id);
         const nuevas = respuesta.recipes.filter(
-          (receta) => !idsExistentes.has(receta.id),
+          (receta) => !idsExistentes.includes(receta.id),
         );
+
         return [...anteriores, ...nuevas];
       });
+
       setTotal(respuesta.total);
     } catch {
       setError("No se pudieron cargar más recetas.");
@@ -112,32 +117,32 @@ export default function RecetasScreen() {
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <FlatList
+            style={styles.lista}
             data={recetas}
             keyExtractor={(item) => String(item.id)}
             renderItem={({ item }) => <TarjetaReceta receta={item} />}
-            contentContainerStyle={styles.lista}
-            onEndReached={() => void cargarMasRecetas()}
-            onEndReachedThreshold={0.4}
+            contentContainerStyle={styles.contenidoLista}
             ListEmptyComponent={
               <Text style={styles.mensaje}>No se encontraron recetas.</Text>
             }
-            ListFooterComponent={
-              cargandoMas ? (
-                <ActivityIndicator
-                  size="small"
-                  color="#356747"
-                  style={styles.carga}
-                />
-              ) : recetas.length < total ? (
-                <TouchableOpacity
-                  style={styles.botonMas}
-                  onPress={() => void cargarMasRecetas()}
-                >
-                  <Text style={styles.textoBoton}>Cargar más recetas</Text>
-                </TouchableOpacity>
-              ) : null
-            }
           />
+
+          {busquedaActiva === "" && recetas.length < total ? (
+            cargandoMas ? (
+              <ActivityIndicator
+                size="small"
+                color="#356747"
+                style={styles.carga}
+              />
+            ) : (
+              <TouchableOpacity
+                style={styles.botonMas}
+                onPress={() => void cargarMasRecetas()}
+              >
+                <Text style={styles.textoBoton}>Cargar más recetas</Text>
+              </TouchableOpacity>
+            )
+          ) : null}
         </>
       )}
     </View>
@@ -183,10 +188,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   lista: {
-    paddingBottom: 24,
+    flex: 1,
+  },
+  contenidoLista: {
+    paddingBottom: 12,
   },
   carga: {
-    margin: 20,
+    margin: 12,
   },
   mensaje: {
     alignItems: "center",
@@ -207,6 +215,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 14,
     alignItems: "center",
-    marginVertical: 12,
+    marginTop: 8,
   },
 });

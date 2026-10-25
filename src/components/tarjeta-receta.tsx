@@ -1,4 +1,5 @@
-import { Image, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { Receta } from "../../types/receta";
 
 type Props = {
@@ -12,10 +13,20 @@ const nombresDificultad: Record<Receta["difficulty"], string> = {
 };
 
 export default function TarjetaReceta({ receta }: Props) {
+  const router = useRouter();
   const tiempoTotal = receta.prepTimeMinutes + receta.cookTimeMinutes;
 
   return (
-    <View style={styles.tarjeta}>
+    <TouchableOpacity
+      style={styles.tarjeta}
+      activeOpacity={0.8}
+      onPress={() =>
+        router.push({
+          pathname: "/receta/[id]",
+          params: { id: String(receta.id) },
+        })
+      }
+    >
       <Image
         source={{ uri: receta.image }}
         style={styles.imagen}
@@ -33,7 +44,7 @@ export default function TarjetaReceta({ receta }: Props) {
           <Text style={styles.texto}>{tiempoTotal} min</Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

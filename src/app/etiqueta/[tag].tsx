@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -41,18 +41,23 @@ export default function PantallaRecetasPorEtiqueta() {
     }
   }
 
+  function volver() {
+    router.back();
+  }
+
+  function reintentar() {
+    void cargarRecetas();
+  }
+
   useEffect(() => {
     void cargarRecetas();
   }, [tag]);
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.botonVolver}
-        onPress={() => router.back()}
-      >
+      <Pressable style={styles.botonVolver} onPress={volver}>
         <Text style={styles.textoVolver}>‹ Volver</Text>
-      </TouchableOpacity>
+      </Pressable>
 
       <Text style={styles.titulo}>
         {tag ? tag.replace(/-/g, " ") : "Recetas"}
@@ -63,9 +68,9 @@ export default function PantallaRecetasPorEtiqueta() {
       ) : error ? (
         <View style={styles.mensaje}>
           <Text style={styles.error}>{error}</Text>
-          <TouchableOpacity onPress={() => void cargarRecetas()}>
+          <Pressable onPress={reintentar}>
             <Text style={styles.reintentar}>Reintentar</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       ) : (
         <FlatList
@@ -93,15 +98,16 @@ const styles = StyleSheet.create({
   botonVolver: {
     alignSelf: "flex-start",
     paddingVertical: 8,
-    marginBottom: 8,
+    paddingHorizontal: 4,
+    marginBottom: 12,
   },
   textoVolver: {
     fontSize: 16,
-    color: "#356747",
     fontWeight: "bold",
+    color: "#356747",
   },
   titulo: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#25382B",
     marginBottom: 16,

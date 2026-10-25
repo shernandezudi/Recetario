@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -25,12 +25,14 @@ export default function RecetasScreen() {
   const [error, setError] = useState("");
 
   const solicitudActual = useRef(0);
+  const cargaEnCurso = useRef(false);
 
   async function cargarRecetas(nuevaConsulta = "") {
     const numeroSolicitud = solicitudActual.current + 1;
     solicitudActual.current = numeroSolicitud;
     const busqueda = nuevaConsulta.trim();
 
+    cargaEnCurso.current = false;
     setCargando(true);
     setCargandoMas(false);
     setError("");
@@ -63,13 +65,14 @@ export default function RecetasScreen() {
   async function cargarMasRecetas() {
     if (
       cargando ||
-      cargandoMas ||
+      cargaEnCurso.current ||
       busquedaActiva !== "" ||
       recetas.length >= total
     ) {
       return;
     }
 
+    cargaEnCurso.current = true;
     const numeroSolicitud = solicitudActual.current;
 
     setCargandoMas(true);
@@ -97,10 +100,24 @@ export default function RecetasScreen() {
         setError("No se pudieron cargar más recetas.");
       }
     } finally {
+      cargaEnCurso.current = false;
+
       if (numeroSolicitud === solicitudActual.current) {
         setCargandoMas(false);
       }
     }
+  }
+
+  function buscar() {
+    void cargarRecetas(consulta);
+  }
+
+  function reintentar() {
+    void cargarRecetas(busquedaActiva);
+  }
+
+  function reintentarCarga() {
+    void cargarMasRecetas();
   }
 
   useEffect(() => {
@@ -116,26 +133,26 @@ export default function RecetasScreen() {
         placeholder="Buscar recetas..."
         value={consulta}
         onChangeText={setConsulta}
-        onSubmitEditing={() => void cargarRecetas(consulta)}
+        onSubmitEditing={buscar}
         returnKeyType="search"
       />
 
-      <TouchableOpacity
+      <Pressable
         style={styles.botonBuscar}
-        onPress={() => void cargarRecetas(consulta)}
+        onPress={buscar}
         disabled={cargando}
       >
         <Text style={styles.textoBoton}>Buscar</Text>
-      </TouchableOpacity>
+      </Pressable>
 
       {cargando ? (
         <ActivityIndicator size="large" color="#356747" style={styles.carga} />
       ) : error && recetas.length === 0 ? (
         <View style={styles.mensaje}>
           <Text style={styles.error}>{error}</Text>
-          <TouchableOpacity onPress={() => void cargarRecetas(busquedaActiva)}>
+          <Pressable onPress={reintentar}>
             <Text style={styles.reintentar}>Reintentar</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       ) : (
         <>
@@ -144,16 +161,15 @@ export default function RecetasScreen() {
           {error ? (
             <View style={styles.mensajeError}>
               <Text style={styles.error}>{error}</Text>
+
               {busquedaActiva === "" && recetas.length < total ? (
-                <TouchableOpacity onPress={() => void cargarMasRecetas()}>
+                <Pressable onPress={reintentarCarga}>
                   <Text style={styles.reintentar}>Reintentar carga</Text>
-                </TouchableOpacity>
+                </Pressable>
               ) : (
-                <TouchableOpacity
-                  onPress={() => void cargarRecetas(busquedaActiva)}
-                >
+                <Pressable onPress={reintentar}>
                   <Text style={styles.reintentar}>Reintentar búsqueda</Text>
-                </TouchableOpacity>
+                </Pressable>
               )}
             </View>
           ) : null}
@@ -177,12 +193,9 @@ export default function RecetasScreen() {
                 style={styles.carga}
               />
             ) : (
-              <TouchableOpacity
-                style={styles.botonMas}
-                onPress={() => void cargarMasRecetas()}
-              >
+              <Pressable style={styles.botonMas} onPress={reintentarCarga}>
                 <Text style={styles.textoBoton}>Cargar más recetas</Text>
-              </TouchableOpacity>
+              </Pressable>
             )
           ) : null}
         </>

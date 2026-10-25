@@ -3,7 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import MensajeError from '../../components/mensaje-error';
 import { Colores } from '../../constants/colores';
 import useReceta from '../../hooks/use-receta';
-import { traducirDificultad } from '../../utils/formato';
+import { tiempoTotal, traducirDificultad } from '../../utils/formato';
 
 export default function DetalleRecetaScreen() {
   // El id viaja por la URL como texto: lo convertimos a numero
@@ -42,6 +42,31 @@ export default function DetalleRecetaScreen() {
       <Text style={styles.subtitulo}>
         {receta.cuisine} · {traducirDificultad(receta.difficulty)}
       </Text>
+
+      <View style={styles.datos}>
+        <View style={styles.dato}>
+          <Text style={styles.valorDato}>{receta.prepTimeMinutes} min</Text>
+          <Text style={styles.etiquetaDato}>Preparación</Text>
+        </View>
+        <View style={styles.dato}>
+          <Text style={styles.valorDato}>{receta.cookTimeMinutes} min</Text>
+          <Text style={styles.etiquetaDato}>Cocción</Text>
+        </View>
+        <View style={styles.dato}>
+          <Text style={styles.valorDato}>{tiempoTotal(receta)} min</Text>
+          <Text style={styles.etiquetaDato}>Total</Text>
+        </View>
+        <View style={styles.dato}>
+          <Text style={styles.valorDato}>{receta.servings}</Text>
+          <Text style={styles.etiquetaDato}>Porciones</Text>
+        </View>
+        <View style={styles.dato}>
+          <Text style={styles.valorDato}>
+            {receta.caloriesPerServing > 0 ? `${receta.caloriesPerServing} kcal` : '—'}
+          </Text>
+          <Text style={styles.etiquetaDato}>Calorías</Text>
+        </View>
+      </View>
     </ScrollView>
   );
 }
@@ -69,4 +94,22 @@ const styles = StyleSheet.create({
   textoSinImagen: { fontSize: 16, color: Colores.textoSuave },
   titulo: { fontSize: 24, fontWeight: 'bold', color: Colores.texto, marginTop: 8 },
   subtitulo: { fontSize: 16, color: Colores.textoSuave },
+  datos: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginVertical: 8,
+  },
+  dato: {
+    minWidth: 96,
+    flexGrow: 1,
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: Colores.tarjeta,
+    borderWidth: 1,
+    borderColor: Colores.borde,
+  },
+  valorDato: { fontSize: 16, fontWeight: 'bold', color: Colores.texto },
+  etiquetaDato: { fontSize: 12, color: Colores.textoSuave },
 });

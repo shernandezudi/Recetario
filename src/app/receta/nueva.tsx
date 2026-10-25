@@ -1,17 +1,41 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert } from 'react-native';
+import { useRouter } from 'expo-router';
+import FormularioReceta from '../../components/formulario-receta';
+import { useRecetas } from '../../context/recetas-context';
+import { crearReceta } from '../../services/recetas';
+import { DatosReceta } from '../../types/receta';
 
-export default function PantallaProvisional() {
+export default function NuevaRecetaScreen() {
+  const router = useRouter();
+  const { agregarReceta } = useRecetas();
+  const [enviando, setEnviando] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
+
+  const handleGuardar = async (datos: DatosReceta) => {
+    setEnviando(true);
+    setErrorEnvio(null);
+    try {
+      const creada = await crearReceta(datos);
+      // La API no guarda nada: la receta queda en el contexto para que el resto de la app la vea
+      agregarReceta(creada);
+      Alert.alert('Receta creada', `"${datos.name}" se agregó a tu recetario.`, [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch (e) {
+      const detalle = e instanceof Error ? e.message : 'error desconocido';
+      setErrorEnvio(`No se pudo crear la receta (${detalle}). Revisá tu conexión y volvé a tocar Guardar.`);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Text>Nueva receta</Text>
-    </View>
+    <FormularioReceta
+      textoBoton="Crear receta"
+      enviando={enviando}
+      errorEnvio={errorEnvio}
+      onGuardar={handleGuardar}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

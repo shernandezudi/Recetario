@@ -1,10 +1,10 @@
-
 import {
     createContext,
     useCallback,
     useContext,
+    useRef,
     useState,
-    type ReactNode
+    type ReactNode,
 } from 'react';
 
 import {
@@ -46,66 +46,114 @@ export function ProveedorRecetas({
   const [recetas, setRecetas] = useState<Receta[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
+  const siguienteIdLocal = useRef(-1);
 
-async function buscarRecetasEnContexto(consulta: string) {
-  try {
-    setCargando(true);
-    setError('');
+    async function buscarRecetasEnContexto(
+    consulta: string
+    ): Promise<void> {
+    try {
+        setCargando(true);
+        setError('');
 
-    const respuesta = await buscarRecetas(consulta);
-    setRecetas(respuesta.recipes);
-  } catch {
-    setError('No se pudieron buscar las recetas. Intentá nuevamente.');
-    throw new Error('No se pudieron buscar las recetas.');
-  } finally {
-    setCargando(false);
-  }
-}
+        if (!consulta.trim()) {
+        await cargarRecetas();
+        return;
+        }
+
+        const respuesta = await buscarRecetas(consulta);
+
+        setRecetas((actuales) => {
+        const recetasLocales = actuales.filter(
+            (receta) =>
+            receta.id < 0 &&
+            receta.name.toLowerCase().includes(consulta.trim().toLowerCase())
+        );
+
+        return [...recetasLocales, ...respuesta.recipes];
+        });
+    } catch {
+        setError('No se pudieron buscar las recetas. Intentá nuevamente.');
+        throw new Error('No se pudieron buscar las recetas.');
+    } finally {
+        setCargando(false);
+    }
+    }
 
   async function agregarReceta(datos: NuevaReceta): Promise<Receta> {
-    const nueva = await crearRecetaAPI(datos);
+    const respuestaAPI = await crearRecetaAPI(datos);
 
-    // DummyJSON simula la creación: guardamos el resultado localmente.
+    // Asignamos un ID local negativo para identificarla durante la sesión.
+    const nueva: Receta = {
+        ...respuestaAPI,
+        ...datos,
+        id: siguienteIdLocal.current,
+    };
+
+    siguienteIdLocal.current -= 1;
+
     setRecetas((actuales) => [nueva, ...actuales]);
 
     return nueva;
-  }
+    }
 
-  async function editarReceta(
+    async function editarReceta(
     id: number,
     datos: ActualizarReceta
-  ): Promise<void> {
+    ): Promise<void> {
+    if (id < 0) {
+        setRecetas((actuales) =>
+        actuales.map((receta) =>
+            receta.id === id ? { ...receta, ...datos } : receta
+        )
+        );
+        return;
+    }
+
     const actualizada = await actualizarRecetaAPI(id, datos);
 
     setRecetas((actuales) =>
-      actuales.map((receta) =>
+        actuales.map((receta) =>
         receta.id === id ? { ...receta, ...actualizada } : receta
-      )
+        )
     );
-  }
+    }
 
-  async function borrarReceta(id: number): Promise<void> {
+
+    async function borrarReceta(id: number): Promise<void> {
+    if (id < 0) {
+        setRecetas((actuales) =>
+        actuales.filter((receta) => receta.id !== id)
+        );
+        return;
+    }
+
     await eliminarRecetaAPI(id);
 
     setRecetas((actuales) =>
-      actuales.filter((receta) => receta.id !== id)
+        actuales.filter((receta) => receta.id !== id)
     );
-  }
+    }
 
-  const cargarRecetas = useCallback(async () => {
-  try {
-    setCargando(true);
-    setError('');
 
-    const respuesta = await obtenerRecetas();
-    setRecetas(respuesta.recipes);
-  } catch {
-    setError('No se pudieron cargar las recetas.');
-    throw new Error('No se pudieron cargar las recetas.');
-  } finally {
-    setCargando(false);
-  }
-}, []);
+    const cargarRecetas = useCallback(async () => {
+    try {
+        setCargando(true);
+        setError('');
+
+        const respuesta = await obtenerRecetas();
+
+        setRecetas((actuales) => {
+        const recetasLocales = actuales.filter((receta) => receta.id < 0);
+
+        return [...recetasLocales, ...respuesta.recipes];
+        });
+    } catch {
+        setError('No se pudieron cargar las recetas.');
+        throw new Error('No se pudieron cargar las recetas.');
+    } finally {
+        setCargando(false);
+    }
+    }, []);
 
   return (
     <RecetasContexto.Provider

@@ -1,5 +1,5 @@
-import { View, Text, Image, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, Image, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import MensajeError from '../../components/mensaje-error';
 import { Colores } from '../../constants/colores';
 import useReceta from '../../hooks/use-receta';
@@ -9,6 +9,7 @@ export default function DetalleRecetaScreen() {
   // El id viaja por la URL como texto: lo convertimos a numero
   const { id } = useLocalSearchParams<{ id: string }>();
   const idNumero = Number(id);
+  const router = useRouter();
   const { receta, cargando, error, reintentar } = useReceta(idNumero);
 
   if (cargando) {
@@ -27,6 +28,10 @@ export default function DetalleRecetaScreen() {
   if (receta === null) {
     return <MensajeError mensaje="No se encontró la receta." onReintentar={reintentar} />;
   }
+
+  const irAEtiqueta = (etiqueta: string) => {
+    router.push(`/etiqueta/${encodeURIComponent(etiqueta)}`);
+  };
 
   return (
     <ScrollView style={styles.pantalla} contentContainerStyle={styles.contenido}>
@@ -67,6 +72,16 @@ export default function DetalleRecetaScreen() {
           <Text style={styles.etiquetaDato}>Calorías</Text>
         </View>
       </View>
+
+      {receta.tags.length > 0 ? (
+        <View style={styles.etiquetas}>
+          {receta.tags.map((etiqueta) => (
+            <Pressable key={etiqueta} style={styles.etiqueta} onPress={() => irAEtiqueta(etiqueta)}>
+              <Text style={styles.textoEtiqueta}>{etiqueta}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       <Text style={styles.seccion}>Ingredientes</Text>
       {receta.ingredients.map((ingrediente, indice) => (
@@ -126,6 +141,14 @@ const styles = StyleSheet.create({
   },
   valorDato: { fontSize: 16, fontWeight: 'bold', color: Colores.texto },
   etiquetaDato: { fontSize: 12, color: Colores.textoSuave },
+  etiquetas: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  etiqueta: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: Colores.etiqueta,
+  },
+  textoEtiqueta: { fontSize: 13, fontWeight: 'bold', color: Colores.primario },
   seccion: { fontSize: 18, fontWeight: 'bold', color: Colores.texto, marginTop: 12 },
   linea: { fontSize: 16, lineHeight: 24, color: Colores.texto },
 });

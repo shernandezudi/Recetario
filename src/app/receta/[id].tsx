@@ -1,8 +1,11 @@
-import { View, Text, Image, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, Image, ScrollView, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import MensajeError from '../../components/mensaje-error';
 import { Colores } from '../../constants/colores';
+import { useRecetas } from '../../context/recetas-context';
 import useReceta from '../../hooks/use-receta';
+import { eliminarReceta } from '../../services/recetas';
 import { tiempoTotal, traducirDificultad } from '../../utils/formato';
 
 export default function DetalleRecetaScreen() {
@@ -10,7 +13,17 @@ export default function DetalleRecetaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const idNumero = Number(id);
   const router = useRouter();
+  const { esDeSesion, quitarReceta, fueEliminada } = useRecetas();
   const { receta, cargando, error, reintentar } = useReceta(idNumero);
+  const [eliminando, setEliminando] = useState(false);
+
+  if (fueEliminada(idNumero)) {
+    return (
+      <View style={styles.centro}>
+        <Text style={styles.textoCentro}>Esta receta fue eliminada.</Text>
+      </View>
+    );
+  }
 
   if (cargando) {
     return (
@@ -29,8 +42,38 @@ export default function DetalleRecetaScreen() {
     return <MensajeError mensaje="No se encontró la receta." onReintentar={reintentar} />;
   }
 
+  const irAEditar = () => {
+    router.push(`/receta/editar/${receta.id}`);
+  };
+
   const irAEtiqueta = (etiqueta: string) => {
     router.push(`/etiqueta/${encodeURIComponent(etiqueta)}`);
+  };
+
+  const eliminar = async () => {
+    setEliminando(true);
+    try {
+      // Las recetas de sesion no existen en la API: solo se quitan del contexto
+      if (!esDeSesion(receta.id)) {
+        await eliminarReceta(receta.id);
+      }
+      quitarReceta(receta.id);
+      Alert.alert('Receta eliminada', `"${receta.name}" se eliminó del recetario.`, [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch (e) {
+      const detalle = e instanceof Error ? e.message : 'error desconocido';
+      Alert.alert('No se pudo eliminar', `Intentá de nuevo (${detalle}).`);
+    } finally {
+      setEliminando(false);
+    }
+  };
+
+  const confirmarEliminar = () => {
+    Alert.alert('Eliminar receta', `¿Seguro que querés eliminar "${receta.name}"?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Eliminar', style: 'destructive', onPress: eliminar },
+    ]);
   };
 
   return (
@@ -96,6 +139,19 @@ export default function DetalleRecetaScreen() {
           {indice + 1}. {paso}
         </Text>
       ))}
+
+      <View style={styles.acciones}>
+        <Pressable style={[styles.boton, styles.botonEditar]} onPress={irAEditar} disabled={eliminando}>
+          <Text style={styles.textoBoton}>Editar</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.boton, styles.botonEliminar, eliminando ? styles.botonDeshabilitado : null]}
+          onPress={confirmarEliminar}
+          disabled={eliminando}
+        >
+          <Text style={styles.textoBoton}>{eliminando ? 'Eliminando...' : 'Eliminar'}</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -151,4 +207,10 @@ const styles = StyleSheet.create({
   textoEtiqueta: { fontSize: 13, fontWeight: 'bold', color: Colores.primario },
   seccion: { fontSize: 18, fontWeight: 'bold', color: Colores.texto, marginTop: 12 },
   linea: { fontSize: 16, lineHeight: 24, color: Colores.texto },
+  acciones: { flexDirection: 'row', gap: 12, marginTop: 24 },
+  boton: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 10 },
+  botonEditar: { backgroundColor: Colores.primario },
+  botonEliminar: { backgroundColor: Colores.error },
+  botonDeshabilitado: { backgroundColor: Colores.deshabilitado },
+  textoBoton: { fontSize: 16, fontWeight: 'bold', color: Colores.textoSobrePrimario },
 });

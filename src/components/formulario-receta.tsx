@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import CampoFormulario from './campo-formulario';
 import { Colores } from '../constants/colores';
-import { DatosReceta } from '../types/receta';
+import { DatosReceta, Dificultad } from '../types/receta';
+import { traducirDificultad } from '../utils/formato';
 
 // Formulario unico para ALTA y EDICION.
 // No llama a servicios ni al contexto: valida y le entrega los datos a quien lo usa (onGuardar).
@@ -12,25 +13,31 @@ type Props = {
   onGuardar: (datos: DatosReceta) => void;
 };
 
+const OPCIONES_DIFICULTAD: Dificultad[] = ['Easy', 'Medium', 'Hard'];
+
 // ---------- Componente ----------
 
 export default function FormularioReceta({ valoresIniciales, textoBoton, onGuardar }: Props) {
   // El valor inicial de useState se usa una sola vez: asi se precarga la edicion.
   const [nombre, setNombre] = useState(valoresIniciales?.name ?? '');
   const [cocina, setCocina] = useState(valoresIniciales?.cuisine ?? '');
+  const [dificultad, setDificultad] = useState<Dificultad | null>(valoresIniciales?.difficulty ?? null);
   const [prep, setPrep] = useState(valoresIniciales ? String(valoresIniciales.prepTimeMinutes) : '');
   const [coccion, setCoccion] = useState(valoresIniciales ? String(valoresIniciales.cookTimeMinutes) : '');
   const [porciones, setPorciones] = useState(valoresIniciales ? String(valoresIniciales.servings) : '');
 
   const handleGuardar = () => {
+    if (dificultad === null) {
+      return;
+    }
     onGuardar({
       name: nombre.trim(),
       cuisine: cocina.trim(),
-      // Valores provisorios: se reemplazan en los commits siguientes
-      difficulty: 'Easy',
+      difficulty: dificultad,
       prepTimeMinutes: Number(prep),
       cookTimeMinutes: Number(coccion),
       servings: Number(porciones),
+      // Valores provisorios: se reemplazan en el siguiente commit
       ingredients: ['x'],
       instructions: ['x'],
     });
@@ -50,6 +57,26 @@ export default function FormularioReceta({ valoresIniciales, textoBoton, onGuard
         onCambiarTexto={setCocina}
         placeholder="Ej: Italiana"
       />
+
+      <View style={styles.grupo}>
+        <Text style={styles.etiqueta}>Dificultad</Text>
+        <View style={styles.opciones}>
+          {OPCIONES_DIFICULTAD.map((opcion) => {
+            const seleccionada = dificultad === opcion;
+            return (
+              <Pressable
+                key={opcion}
+                style={[styles.opcion, seleccionada ? styles.opcionSeleccionada : null]}
+                onPress={() => setDificultad(opcion)}
+              >
+                <Text style={[styles.textoOpcion, seleccionada ? styles.textoOpcionSeleccionada : null]}>
+                  {traducirDificultad(opcion)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
 
       <CampoFormulario
         etiqueta="Preparación (minutos)"
@@ -83,6 +110,21 @@ export default function FormularioReceta({ valoresIniciales, textoBoton, onGuard
 const styles = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: Colores.fondo },
   contenido: { padding: 16, gap: 16, paddingBottom: 40 },
+  grupo: { gap: 6 },
+  etiqueta: { fontSize: 14, fontWeight: 'bold', color: Colores.texto },
+  opciones: { flexDirection: 'row', gap: 8 },
+  opcion: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colores.borde,
+    backgroundColor: Colores.tarjeta,
+  },
+  opcionSeleccionada: { backgroundColor: Colores.primario, borderColor: Colores.primario },
+  textoOpcion: { fontSize: 15, color: Colores.texto },
+  textoOpcionSeleccionada: { color: Colores.textoSobrePrimario, fontWeight: 'bold' },
   botonGuardar: {
     alignItems: 'center',
     paddingVertical: 14,

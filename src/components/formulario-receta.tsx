@@ -11,6 +11,8 @@ import { traducirDificultad } from '../utils/formato';
 type Props = {
   valoresIniciales?: DatosReceta;
   textoBoton: string;
+  enviando: boolean;
+  errorEnvio?: string | null;
   onGuardar: (datos: DatosReceta) => void;
 };
 
@@ -84,7 +86,7 @@ const hayErrores = (errores: Errores): boolean => {
 
 // ---------- Componente ----------
 
-export default function FormularioReceta({ valoresIniciales, textoBoton, onGuardar }: Props) {
+export default function FormularioReceta({ valoresIniciales, textoBoton, enviando, errorEnvio, onGuardar }: Props) {
   // El valor inicial de useState se usa una sola vez: asi se precarga la edicion.
   const [nombre, setNombre] = useState(valoresIniciales?.name ?? '');
   const [cocina, setCocina] = useState(valoresIniciales?.cuisine ?? '');
@@ -202,8 +204,14 @@ export default function FormularioReceta({ valoresIniciales, textoBoton, onGuard
         marcarVacias={intentoGuardar}
       />
 
-      <Pressable style={styles.botonGuardar} onPress={handleGuardar}>
-        <Text style={styles.textoBotonGuardar}>{textoBoton}</Text>
+      {errorEnvio ? <Text style={styles.errorEnvio}>{errorEnvio}</Text> : null}
+
+      <Pressable
+        style={[styles.botonGuardar, enviando ? styles.botonDeshabilitado : null]}
+        onPress={handleGuardar}
+        disabled={enviando}
+      >
+        <Text style={styles.textoBotonGuardar}>{enviando ? 'Guardando...' : textoBoton}</Text>
       </Pressable>
     </ScrollView>
   );
@@ -228,11 +236,19 @@ const styles = StyleSheet.create({
   textoOpcion: { fontSize: 15, color: Colores.texto },
   textoOpcionSeleccionada: { color: Colores.textoSobrePrimario, fontWeight: 'bold' },
   textoError: { fontSize: 13, color: Colores.error },
+  errorEnvio: {
+    padding: 12,
+    borderRadius: 8,
+    fontSize: 14,
+    color: Colores.error,
+    backgroundColor: Colores.errorFondo,
+  },
   botonGuardar: {
     alignItems: 'center',
     paddingVertical: 14,
     borderRadius: 10,
     backgroundColor: Colores.primario,
   },
+  botonDeshabilitado: { backgroundColor: Colores.deshabilitado },
   textoBotonGuardar: { fontSize: 16, fontWeight: 'bold', color: Colores.textoSobrePrimario },
 });

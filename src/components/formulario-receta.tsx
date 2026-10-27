@@ -3,8 +3,8 @@ import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import CampoFormulario from './campo-formulario';
 import ListaEditable from './lista-editable';
 import { Colores } from '../constants/colores';
-import { DatosReceta, Dificultad } from '../types/receta';
-import { traducirDificultad } from '../utils/formato';
+import { DatosReceta, Dificultad } from '../../types/receta';
+import { traducirDificultad } from '../../utils/formato';
 
 // Formulario unico para ALTA y EDICION.
 // No llama a servicios ni al contexto: valida y le entrega los datos a quien lo usa (onGuardar).

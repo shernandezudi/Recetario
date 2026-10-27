@@ -1,5 +1,6 @@
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -7,72 +8,84 @@ import {
   StyleSheet,
   Text,
   View,
-} from "react-native";
+} from 'react-native';
 
-import { obtenerEtiquetas } from "../../../services/recetas";
+import { obtenerEtiquetas } from '../../../services/recetas';
 
-export default function ExplorarScreen() {
+export default function ExploreScreen() {
   const router = useRouter();
-
   const [etiquetas, setEtiquetas] = useState<string[]>([]);
   const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
-  async function cargarEtiquetas() {
+  const cargarEtiquetas = useCallback(async () => {
     setCargando(true);
-    setError("");
+    setError('');
 
     try {
       const resultado = await obtenerEtiquetas();
       setEtiquetas(resultado);
     } catch {
-      setError("No se pudieron cargar las etiquetas.");
+      setError('No se pudieron cargar las etiquetas.');
     } finally {
       setCargando(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     void cargarEtiquetas();
-  }, []);
+  }, [cargarEtiquetas]);
 
-  function abrirEtiqueta(etiqueta: string) {
-    router.push({
-      pathname: "/etiqueta/[tag]",
-      params: { tag: etiqueta },
-    });
+  if (cargando) {
+    return (
+      <View style={styles.centrado}>
+        <ActivityIndicator size="large" color="#356747" />
+        <Text style={styles.indicacion}>Cargando etiquetas...</Text>
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>Explorar recetas</Text>
-      <Text style={styles.subtitulo}>Descubrí recetas por categoría</Text>
+      <Text style={styles.titulo}>Explorar</Text>
+      <Text style={styles.subtitulo}>
+        Encontrá recetas por categoría
+      </Text>
 
-      {cargando ? (
-        <ActivityIndicator size="large" color="#356747" style={styles.carga} />
-      ) : error ? (
-        <View style={styles.mensaje}>
+      {error ? (
+        <View style={styles.centrado}>
           <Text style={styles.error}>{error}</Text>
-          <Pressable onPress={() => void cargarEtiquetas()}>
-            <Text style={styles.reintentar}>Reintentar</Text>
+          <Pressable style={styles.boton} onPress={() => void cargarEtiquetas()}>
+            <Text style={styles.textoBoton}>Reintentar</Text>
           </Pressable>
         </View>
       ) : (
         <FlatList
           data={etiquetas}
-          keyExtractor={(etiqueta) => etiqueta}
+          keyExtractor={(item) => item}
+          numColumns={2}
+          columnWrapperStyle={styles.fila}
+          contentContainerStyle={styles.lista}
           renderItem={({ item }) => (
             <Pressable
-              style={styles.botonEtiqueta}
-              onPress={() => abrirEtiqueta(item)}
+              style={styles.tarjeta}
+              onPress={() =>
+                router.push({
+                  pathname: '/etiqueta/[tag]',
+                  params: { tag: item },
+                })
+              }
             >
-              <Text style={styles.textoEtiqueta}>{item}</Text>
+              <Text style={styles.nombreEtiqueta}>
+                {item.replace(/-/g, ' ')}
+              </Text>
+              <Text style={styles.indicacion}>Ver recetas →</Text>
             </Pressable>
           )}
-          contentContainerStyle={styles.lista}
-          ItemSeparatorComponent={() => <View style={styles.separador} />}
           ListEmptyComponent={
-            <Text style={styles.mensaje}>No hay etiquetas disponibles.</Text>
+            <Text style={styles.indicacion}>
+              No hay etiquetas disponibles.
+            </Text>
           }
         />
       )}
@@ -83,54 +96,69 @@ export default function ExplorarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 16,
+    paddingTop: 24,
+    backgroundColor: '#F7F7F2',
+  },
+  centrado: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 20,
-    backgroundColor: "#F7F7F2",
   },
   titulo: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#25382B",
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#25382B',
     marginBottom: 6,
   },
   subtitulo: {
-    fontSize: 15,
-    color: "#555555",
-    marginBottom: 20,
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 18,
   },
   lista: {
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
-  botonEtiqueta: {
-    backgroundColor: "#FFFFFF",
+  fila: {
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  tarjeta: {
+    flex: 1,
+    minHeight: 110,
+    marginHorizontal: 4,
+    padding: 14,
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#D8DED5",
-    borderRadius: 10,
-    padding: 16,
+    borderColor: '#e5e5e5',
   },
-  textoEtiqueta: {
+  nombreEtiqueta: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#356747",
-    textTransform: "capitalize",
-  },
-  separador: {
-    height: 10,
-  },
-  carga: {
-    marginTop: 30,
-  },
-  mensaje: {
-    alignItems: "center",
-    padding: 20,
-  },
-  error: {
-    color: "#B42318",
-    textAlign: "center",
+    fontWeight: 'bold',
+    color: '#25382B',
+    textTransform: 'capitalize',
     marginBottom: 8,
   },
-  reintentar: {
-    color: "#356747",
-    fontWeight: "bold",
-    padding: 8,
+  indicacion: {
+    fontSize: 13,
+    color: '#666',
+  },
+  boton: {
+    backgroundColor: '#356747',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 12,
+  },
+  textoBoton: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  error: {
+    color: '#B42318',
+    textAlign: 'center',
   },
 });

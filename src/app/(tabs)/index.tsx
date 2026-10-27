@@ -1,205 +1,148 @@
-import { useEffect, useRef, useState } from "react";
+
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
-} from "react-native";
+} from 'react-native';
 
-import { buscarRecetas, obtenerRecetas } from "../../../services/recetas";
-import type { Receta } from "../../../types/receta";
-import TarjetaReceta from "../../components/tarjeta-receta";
-
-const LIMITE = 10;
+import { useRecetas } from '../../context/recetas-context';
 
 export default function RecetasScreen() {
-  const [recetas, setRecetas] = useState<Receta[]>([]);
-  const [consulta, setConsulta] = useState("");
-  const [busquedaActiva, setBusquedaActiva] = useState("");
-  const [total, setTotal] = useState(0);
-  const [cargando, setCargando] = useState(true);
-  const [cargandoMas, setCargandoMas] = useState(false);
-  const [error, setError] = useState("");
+  const router = useRouter();
+  const [busqueda, setBusqueda] = useState('');
+  const [buscando, setBuscando] = useState(false);
 
-  const solicitudActual = useRef(0);
-  const cargaEnCurso = useRef(false);
+  const {
+    recetas,
+    cargando,
+    error,
+    cargarRecetas,
+    buscarRecetasEnContexto,
+  } = useRecetas();
 
-  async function cargarRecetas(nuevaConsulta = "") {
-    const numeroSolicitud = solicitudActual.current + 1;
-    solicitudActual.current = numeroSolicitud;
-    const busqueda = nuevaConsulta.trim();
+  useEffect(() => {
+    cargarRecetas().catch(() => {});
+  }, [cargarRecetas]);
 
-    cargaEnCurso.current = false;
-    setCargando(true);
-    setCargandoMas(false);
-    setError("");
-    setRecetas([]);
-    setTotal(0);
-    setBusquedaActiva(busqueda);
+  async function ejecutarBusqueda() {
+    setBuscando(true);
 
     try {
-      const respuesta = busqueda
-        ? await buscarRecetas(busqueda)
-        : await obtenerRecetas(LIMITE, 0);
-
-      if (numeroSolicitud !== solicitudActual.current) {
-        return;
+      if (busqueda.trim() === '') {
+        await cargarRecetas();
+      } else {
+        await buscarRecetasEnContexto(busqueda.trim());
       }
-
-      setRecetas(respuesta.recipes);
-      setTotal(respuesta.total);
     } catch {
-      if (numeroSolicitud === solicitudActual.current) {
-        setError("No se pudieron cargar las recetas.");
-      }
+      // El contexto administra el mensaje de error.
     } finally {
-      if (numeroSolicitud === solicitudActual.current) {
-        setCargando(false);
-      }
+      setBuscando(false);
     }
-  }
-
-  async function cargarMasRecetas() {
-    if (
-      cargando ||
-      cargaEnCurso.current ||
-      busquedaActiva !== "" ||
-      recetas.length >= total
-    ) {
-      return;
-    }
-
-    cargaEnCurso.current = true;
-    const numeroSolicitud = solicitudActual.current;
-
-    setCargandoMas(true);
-    setError("");
-
-    try {
-      const respuesta = await obtenerRecetas(LIMITE, recetas.length);
-
-      if (numeroSolicitud !== solicitudActual.current) {
-        return;
-      }
-
-      setRecetas((anteriores) => {
-        const idsExistentes = anteriores.map((receta) => receta.id);
-        const nuevas = respuesta.recipes.filter(
-          (receta) => !idsExistentes.includes(receta.id),
-        );
-
-        return [...anteriores, ...nuevas];
-      });
-
-      setTotal(respuesta.total);
-    } catch {
-      if (numeroSolicitud === solicitudActual.current) {
-        setError("No se pudieron cargar más recetas.");
-      }
-    } finally {
-      cargaEnCurso.current = false;
-
-      if (numeroSolicitud === solicitudActual.current) {
-        setCargandoMas(false);
-      }
-    }
-  }
-
-  function buscar() {
-    void cargarRecetas(consulta);
   }
 
   function reintentar() {
-    void cargarRecetas(busquedaActiva);
+    if (busqueda.trim() !== '') {
+      void buscarRecetasEnContexto(busqueda.trim()).catch(() => {});
+    } else {
+      void cargarRecetas().catch(() => {});
+    }
   }
 
-  function reintentarCarga() {
-    void cargarMasRecetas();
+  if (cargando && recetas.length === 0) {
+    return (
+      <View style={styles.centrado}>
+        <ActivityIndicator size="large" color="#356747" />
+        <Text style={styles.mensaje}>Cargando recetas...</Text>
+      </View>
+    );
   }
-
-  useEffect(() => {
-    void cargarRecetas();
-  }, []);
 
   return (
     <View style={styles.container}>
       <Text style={styles.titulo}>Recetario</Text>
+      <Text style={styles.subtitulo}>
+        Explorá nuestras recetas
+      </Text>
 
-      <TextInput
-        style={styles.busqueda}
-        placeholder="Buscar recetas..."
-        value={consulta}
-        onChangeText={setConsulta}
-        onSubmitEditing={buscar}
-        returnKeyType="search"
-      />
+      <View style={styles.buscador}>
+        <TextInput
+          style={styles.campoBusqueda}
+          placeholder="Buscar recetas..."
+          value={busqueda}
+          onChangeText={setBusqueda}
+          onSubmitEditing={() => void ejecutarBusqueda()}
+          returnKeyType="search"
+        />
 
-      <Pressable
-        style={styles.botonBuscar}
-        onPress={buscar}
-        disabled={cargando}
-      >
-        <Text style={styles.textoBoton}>Buscar</Text>
-      </Pressable>
+        <Pressable
+          style={styles.botonBuscar}
+          onPress={() => void ejecutarBusqueda()}
+          disabled={buscando || cargando}
+        >
+          <Text style={styles.textoBotonBuscar}>
+            {buscando ? 'Buscando...' : 'Buscar'}
+          </Text>
+        </Pressable>
+      </View>
 
-      {cargando ? (
-        <ActivityIndicator size="large" color="#356747" style={styles.carga} />
-      ) : error && recetas.length === 0 ? (
-        <View style={styles.mensaje}>
+      {error ? (
+        <View style={styles.mensajeError}>
           <Text style={styles.error}>{error}</Text>
           <Pressable onPress={reintentar}>
             <Text style={styles.reintentar}>Reintentar</Text>
           </Pressable>
         </View>
-      ) : (
-        <>
-          <Text style={styles.resultados}>{total} recetas encontradas</Text>
+      ) : null}
 
-          {error ? (
-            <View style={styles.mensajeError}>
-              <Text style={styles.error}>{error}</Text>
-
-              {busquedaActiva === "" && recetas.length < total ? (
-                <Pressable onPress={reintentarCarga}>
-                  <Text style={styles.reintentar}>Reintentar carga</Text>
-                </Pressable>
-              ) : (
-                <Pressable onPress={reintentar}>
-                  <Text style={styles.reintentar}>Reintentar búsqueda</Text>
-                </Pressable>
-              )}
-            </View>
-          ) : null}
-
-          <FlatList
-            style={styles.lista}
-            data={recetas}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={({ item }) => <TarjetaReceta receta={item} />}
-            contentContainerStyle={styles.contenidoLista}
-            ListEmptyComponent={
-              <Text style={styles.mensaje}>No se encontraron recetas.</Text>
+      <FlatList
+        data={recetas}
+        keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={styles.lista}
+        renderItem={({ item }) => (
+          <Pressable
+            style={styles.tarjeta}
+            onPress={() =>
+              router.push({
+                pathname: '/receta/[id]',
+                params: { id: String(item.id) },
+              })
             }
-          />
+          >
+            <Image
+              source={{ uri: item.image }}
+              style={styles.imagen}
+              resizeMode="cover"
+            />
 
-          {busquedaActiva === "" && recetas.length < total ? (
-            cargandoMas ? (
-              <ActivityIndicator
-                size="small"
-                color="#356747"
-                style={styles.carga}
-              />
-            ) : (
-              <Pressable style={styles.botonMas} onPress={reintentarCarga}>
-                <Text style={styles.textoBoton}>Cargar más recetas</Text>
-              </Pressable>
-            )
-          ) : null}
-        </>
-      )}
+            <View style={styles.contenidoTarjeta}>
+              <Text style={styles.nombre}>{item.name}</Text>
+              <Text style={styles.detalle}>
+                {item.cuisine} · {item.difficulty}
+              </Text>
+              <Text style={styles.detalle}>
+                Preparación: {item.prepTimeMinutes} min
+              </Text>
+              <Text style={styles.detalle}>
+                Calificación: {item.rating}
+              </Text>
+            </View>
+          </Pressable>
+        )}
+        ListEmptyComponent={
+          !cargando && !error ? (
+            <Text style={styles.mensajeVacio}>
+              No se encontraron recetas.
+            </Text>
+          ) : null
+        }
+      />
     </View>
   );
 }
@@ -208,72 +151,106 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#F7F7F2",
+    paddingTop: 24,
+    backgroundColor: '#F7F7F2',
   },
-  titulo: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#25382B",
-    marginBottom: 16,
-  },
-  busqueda: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D8DED5",
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 16,
-  },
-  botonBuscar: {
-    backgroundColor: "#356747",
-    borderRadius: 10,
-    padding: 12,
-    alignItems: "center",
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  textoBoton: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 15,
-  },
-  resultados: {
-    fontSize: 14,
-    color: "#555555",
-    marginBottom: 12,
-  },
-  lista: {
+  centrado: {
     flex: 1,
-  },
-  contenidoLista: {
-    paddingBottom: 12,
-  },
-  carga: {
-    margin: 12,
-  },
-  mensaje: {
-    alignItems: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 20,
   },
+  titulo: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#25382B',
+    marginBottom: 6,
+  },
+  subtitulo: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 18,
+  },
+  buscador: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  campoBusqueda: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#D8DED5',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    color: '#222',
+  },
+  botonBuscar: {
+    backgroundColor: '#356747',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  textoBotonBuscar: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  lista: {
+    paddingBottom: 20,
+  },
+  tarjeta: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  imagen: {
+    width: 115,
+    height: 125,
+  },
+  contenidoTarjeta: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'center',
+    gap: 5,
+  },
+  nombre: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#25382B',
+  },
+  detalle: {
+    fontSize: 13,
+    color: '#555',
+  },
+  mensaje: {
+    marginTop: 12,
+    fontSize: 16,
+    textAlign: 'center',
+  },
   mensajeError: {
-    alignItems: "center",
+    alignItems: 'center',
     paddingVertical: 8,
   },
   error: {
-    color: "#B42318",
-    textAlign: "center",
+    color: '#B42318',
+    textAlign: 'center',
     marginBottom: 8,
   },
   reintentar: {
-    color: "#356747",
-    fontWeight: "bold",
+    color: '#356747',
+    fontWeight: 'bold',
     padding: 8,
   },
-  botonMas: {
-    backgroundColor: "#356747",
-    borderRadius: 10,
-    padding: 14,
-    alignItems: "center",
-    marginTop: 8,
+  mensajeVacio: {
+    textAlign: 'center',
+    marginTop: 24,
+    fontSize: 16,
+    color: '#666',
   },
 });

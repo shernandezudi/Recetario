@@ -5,8 +5,8 @@ import MensajeError from '../../components/mensaje-error';
 import { Colores } from '../../constants/colores';
 import { useRecetas } from '../../context/recetas-context';
 import useReceta from '../../hooks/use-receta';
-import { eliminarReceta } from '../../services/recetas';
-import { tiempoTotal, traducirDificultad } from '../../utils/formato';
+import { eliminarReceta } from '../../../services/recetas';
+import { tiempoTotal, traducirDificultad } from '../../../utils/formato';
 
 export default function DetalleRecetaScreen() {
   // El id viaja por la URL como texto: lo convertimos a numero

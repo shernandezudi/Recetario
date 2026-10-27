@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRecetas } from '../context/recetas-context';
-import { obtenerReceta } from '../services/recetas';
-import { Receta } from '../types/receta';
+import { obtenerReceta } from '../../services/recetas';
+import { Receta } from '../../types/receta';
 
 // Hook propio: es solo una funcion que agrupa useState + useEffect para no repetir
 // el mismo codigo en el detalle y en la edicion.

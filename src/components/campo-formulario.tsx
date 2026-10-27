@@ -1,4 +1,4 @@
-import { Colores } from '..constants/colores';
+import { Colores } from '../constants/colores';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 // Un campo de texto con su etiqueta y su mensaje de error.
